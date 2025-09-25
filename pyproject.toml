@@ -1,0 +1,61 @@
+[project]
+name = "arxiv-paper-curator"
+version = "0.1.0"
+description = "Paper Curator"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi[standard]",
+    "uvicorn",
+    "pydantic",
+    "pydantic-settings",
+    "sqlalchemy",
+    "psycopg2-binary",
+    "alembic",
+    "opensearch-py",
+    "requests",
+    "httpx",
+    "docling",
+    "python-dateutil",
+    "sentence-transformers",
+    "gradio",
+    "langfuse",
+    "redis",
+]
+readme = "README.md"
+
+[dependency-groups]
+dev = [
+    "anyio[trio]",
+    "asgi-lifespan",
+    "jupyter",
+    "mypy",
+    "notebook",
+    "polyfactory",
+    "pre-commit",
+    "pytest",
+    "pytest-aiohttp",
+    "pytest-cov",
+    "pytest-dotenv",
+    "pytest-env",
+    "pytest-mock",
+    "ruff",
+    "testcontainers",
+    "types-sqlalchemy",
+]
+
+[tool.ruff]
+line-length = 150
+exclude = ["**/notebooks/", "**/.venv/"]
+src = ["src", "tests"]
+lint.select = [
+  "I",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+env_files = ".env.test"
+
+[tool.mypy]
+explicit_package_bases = true
+ignore_errors = true
