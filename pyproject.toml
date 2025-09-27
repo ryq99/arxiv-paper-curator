@@ -20,6 +20,8 @@ dependencies = [
     "gradio",
     "langfuse",
     "redis",
+    "boto3",
+    "awswrangler",
 ]
 readme = "README.md"
 
