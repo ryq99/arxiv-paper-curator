@@ -145,6 +145,16 @@ class RedisSettings(BaseConfigSettings):
     # Cache settings
     ttl_hours: int = 6  # Cache TTL in hours
 
+class S3Settings(BaseConfigSettings):
+    model_config = SettingsConfigDict(
+        env_file=[".env", str(ENV_FILE_PATH)],
+        env_prefix="S3__",
+        extra="ignore",
+        frozen=True,
+        case_sensitive=False,
+    )
+    bucket_name: str = "arxiv-paper-curator"
+    prefix: str = "data"
 
 class Settings(BaseConfigSettings):
     app_version: str = "0.1.0"
@@ -170,6 +180,7 @@ class Settings(BaseConfigSettings):
     opensearch: OpenSearchSettings = Field(default_factory=OpenSearchSettings)
     langfuse: LangfuseSettings = Field(default_factory=LangfuseSettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)
+    s3: S3Settings = Field(default_factory=S3Settings)
 
     @field_validator("postgres_database_url")
     @classmethod

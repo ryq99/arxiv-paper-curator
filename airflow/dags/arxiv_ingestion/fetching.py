@@ -10,11 +10,13 @@ logger = logging.getLogger(__name__)
 
 async def run_paper_ingestion_pipeline(
     target_date: str,
+    day_window: Optional[int] = None,
     process_pdfs: bool = True,
 ) -> dict:
     """Async wrapper for the paper ingestion pipeline.
 
     :param target_date: Date to fetch papers for (YYYYMMDD format)
+    :param day_window: Number of days before the target_date to include, optional and defaults to None, used for weekends/holidays to ensure results returned
     :param process_pdfs: Whether to download and process PDFs
     :returns: Dictionary with ingestion statistics
     """
@@ -23,18 +25,26 @@ async def run_paper_ingestion_pipeline(
     max_results = arxiv_client.max_results
     logger.info(f"Using default max_results from config: {max_results}")
 
+    if isinstance(day_window, int) and day_window > 0:
+        from_date = (datetime.strptime(target_date, "%Y%m%d") - timedelta(days=day_window)).strftime("%Y%m%d")
+        logger.info(f"Day window set. Fetching papers from {from_date} to {target_date}")
+    else:
+        from_date = target_date
+        logger.info(f"No day window. Fetching papers for {target_date} only")
+
     with database.get_session() as session:
         return await metadata_fetcher.fetch_and_process_papers(
             max_results=max_results,
-            from_date=target_date,
+            from_date=from_date,
             to_date=target_date,
             process_pdfs=process_pdfs,
             store_to_db=True,
+            store_to_s3=True,
             db_session=session,
         )
 
 
-def fetch_daily_papers(**context):
+def fetch_daily_papers(day_window=None, **context):
     """Fetch daily papers from arXiv and store in PostgreSQL.
 
     This task:
@@ -60,6 +70,7 @@ def fetch_daily_papers(**context):
     results = asyncio.run(
         run_paper_ingestion_pipeline(
             target_date=target_date,
+            day_window=day_window,
             process_pdfs=True,
         )
     )
