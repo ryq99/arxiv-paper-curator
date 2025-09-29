@@ -467,8 +467,7 @@ class MetadataFetcher:
                 paper_create = PaperCreate(**paper_data)
 
                 # Save to S3
-                json_str = json.dumps(paper_create.json(), ensure_ascii=False)
-                json_bytes = json_str.encode("utf-8")
+                json_bytes = paper_create.model_dump_json().encode("utf-8")
                 response = s3_client.put_object(
                     Bucket=self.settings.s3.bucket_name,
                     Key=f"{self.settings.s3.prefix}/{paper.arxiv_id}.json",
