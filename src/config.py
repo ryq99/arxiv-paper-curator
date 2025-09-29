@@ -34,6 +34,7 @@ class ArxivSettings(BaseConfigSettings):
     timeout_seconds: int = 30
     max_results: int = 15
     search_category: str = "cs.AI"
+    search_categories: list[str] = ["cs.LG", "cs.AI", "cs.CL", "cs.CV", "cs.IR", "stat.ML", "cs.NE", "cs.MA"]
     download_max_retries: int = 3
     download_retry_delay_base: float = 5.0
     max_concurrent_downloads: int = 5

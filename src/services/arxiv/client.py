@@ -80,7 +80,8 @@ class ArxivClient:
             max_results = self.max_results
 
         # Build search query
-        search_query = f"cat:{self.search_category}"
+        #search_query = f"cat:{self.search_category}"
+        search_query = " OR ".join([f"cat:{cat}" for cat in self._settings.search_categories])
 
         # Add date filtering if provided
         if from_date or to_date:
