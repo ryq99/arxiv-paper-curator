@@ -121,6 +121,7 @@ services:
       - airflow_logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - ./src:/opt/airflow/src
+      - ${HOME}/.aws:/opt/airflow/.aws:ro
     ports:
       - "8080:8080"
     # Command handled by entrypoint.sh

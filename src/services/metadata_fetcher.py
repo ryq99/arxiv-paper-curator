@@ -1,3 +1,4 @@
+import json
 import asyncio
 import logging
 from datetime import datetime
@@ -14,6 +15,8 @@ from src.schemas.pdf_parser.models import ArxivMetadata, ParsedPaper, PdfContent
 from src.services.arxiv.client import ArxivClient
 from src.services.opensearch.client import OpenSearchClient
 from src.services.pdf_parser.parser import PDFParserService
+
+import boto3
 
 logger = logging.getLogger(__name__)
 
@@ -63,21 +66,24 @@ class MetadataFetcher:
         to_date: Optional[str] = None,
         process_pdfs: bool = True,
         store_to_db: bool = True,
+        store_to_s3: bool = True,
         db_session: Optional[Session] = None,
     ) -> Dict[str, Any]:
-        """Fetch papers from arXiv, process PDFs, and store to database.
+        """Fetch papers from arXiv, process PDFs, and store to database/S3.
 
         :param max_results: Maximum papers to fetch
         :param from_date: Filter papers from this date (YYYYMMDD)
         :param to_date: Filter papers to this date (YYYYMMDD)
         :param process_pdfs: Whether to download and parse PDFs
         :param store_to_db: Whether to store results in database
+        :param store_to_s3: Whether to store results to S3
         :param db_session: Database session (required if store_to_db=True)
         :type max_results: Optional[int]
         :type from_date: Optional[str]
         :type to_date: Optional[str]
         :type process_pdfs: bool
         :type store_to_db: bool
+        :type store_to_s3: bool
         :type db_session: Optional[Session]
         :returns: Dictionary with processing results and statistics
         :rtype: Dict[str, Any]
@@ -123,6 +129,12 @@ class MetadataFetcher:
             elif store_to_db:
                 logger.warning("Database storage requested but no session provided")
                 results["errors"].append("Database session not provided for storage")
+
+            # Step 4: Store PDFs to S3 if requested
+            if store_to_s3:
+                logger.info("Step 4: Storing PDFs to S3...")
+                s3_store_count = self._store_papers_to_s3(papers, pdf_results.get("parsed_papers", {}))
+                logger.info(f"Stored {s3_store_count} PDFs to S3")
 
             # Calculate total processing time
             processing_time = (datetime.now() - start_time).total_seconds()
@@ -400,7 +412,81 @@ class MetadataFetcher:
             stored_count = 0
 
         return stored_count
+    
+    def _store_papers_to_s3(
+            self,
+            papers: List[ArxivPaper],
+            parsed_papers: Dict[str, ParsedPaper],
+        ) -> int:
+        """
+        Store papers and parsed content to S3 with comprehensive content storage.
 
+        Args:
+            papers: List of ArxivPaper metadata
+            parsed_papers: Dictionary of parsed PDF content by arxiv_id
+
+        Returns:
+            Number of papers stored successfully
+        """
+        stored_count = 0
+        s3_client = boto3.client('s3')
+
+        for paper in papers:
+            try:
+                # Get parsed content if available
+                parsed_paper = parsed_papers.get(paper.arxiv_id)
+
+                # Base paper data
+                published_date = (
+                    date_parser.parse(paper.published_date) if isinstance(paper.published_date, str) else paper.published_date
+                )
+                paper_data = {
+                    "arxiv_id": paper.arxiv_id,
+                    "title": paper.title,
+                    "authors": paper.authors,
+                    "abstract": paper.abstract,
+                    "categories": paper.categories,
+                    "published_date": published_date,
+                    "pdf_url": paper.pdf_url,
+                }
+
+                # Add parsed content if available
+                if parsed_paper:
+                    parsed_content = self._serialize_parsed_content(parsed_paper)
+                    paper_data.update(parsed_content)
+                    logger.debug(
+                        f"Storing paper {paper.arxiv_id} with parsed content ({len(parsed_content.get('raw_text', '')) if parsed_content.get('raw_text') else 0} chars)"
+                    )
+                else:
+                    # No parsed content - just store metadata
+                    paper_data.update(
+                        {"pdf_processed": False, "parser_metadata": {"note": "PDF processing not available or failed"}}
+                    )
+                    logger.debug(f"Storing paper {paper.arxiv_id} with metadata only")
+
+                paper_create = PaperCreate(**paper_data)
+
+                # Save to S3
+                json_str = json.dumps(paper_create.json(), ensure_ascii=False)
+                json_bytes = json_str.encode("utf-8")
+                response = s3_client.put_object(
+                    Bucket=self.settings.s3.bucket_name,
+                    Key=f"{self.settings.s3.prefix}/{paper.arxiv_id}.json",
+                    Body=json_bytes,
+                    ContentType="application/json"
+                )
+
+                if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+                    stored_count += 1
+                    content_info = "with parsed content" if parsed_paper else "metadata only"
+                    logger.debug(f"Stored paper {paper.arxiv_id} to S3 ({content_info})")
+
+            except Exception as e:
+                logger.error(f"Failed to store paper {paper.arxiv_id}: {e}")
+
+        logger.info(f"Uploaded {stored_count} papers to S3 with full content storage")
+
+        return stored_count
 
 def make_metadata_fetcher(
     arxiv_client: ArxivClient,

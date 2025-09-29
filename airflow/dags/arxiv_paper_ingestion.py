@@ -43,6 +43,7 @@ setup_task = PythonOperator(
 fetch_task = PythonOperator(
     task_id="fetch_daily_papers",
     python_callable=fetch_daily_papers,
+    op_kwargs={"day_window": 5},  # Give some buffer for weekends/holidays to ensure returning results
     dag=dag,
 )
 
