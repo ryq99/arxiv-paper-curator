@@ -103,7 +103,8 @@ class ArxivClient:
         url = f"{self.base_url}?{urlencode(params, quote_via=quote, safe=safe)}"
 
         try:
-            logger.info(f"Fetching {max_results} {self.search_category} papers from arXiv")
+            #logger.info(f"Fetching {max_results} {self.search_category} papers from arXiv")
+            logger.info(f"Fetching {max_results} papers in ({', '.join(self.search_categories)}) from arXiv")
 
             # Add rate limiting delay between all requests (arXiv recommends 3 seconds)
             if self._last_request_time is not None:
