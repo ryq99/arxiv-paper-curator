@@ -90,8 +90,8 @@ class HybridIndexingService:
                     # Denormalized paper metadata for efficient search
                     "title": paper_data.get("title", ""),
                     "authors": ", ".join(paper_data.get("authors", []))
-                    if isinstance(paper_data.get("authors"), list)
-                    else paper_data.get("authors", ""),
+                        if isinstance(paper_data.get("authors"), list)
+                        else paper_data.get("authors", ""),
                     "abstract": paper_data.get("abstract", ""),
                     "categories": paper_data.get("categories", []),
                     "published_date": paper_data.get("published_date"),
