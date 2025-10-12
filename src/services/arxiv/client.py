@@ -52,6 +52,10 @@ class ArxivClient:
     @property
     def search_category(self) -> str:
         return self._settings.search_category
+    
+    @property
+    def search_categories(self) -> list:
+        return self._settings.search_categories
 
     async def fetch_papers(
         self,
