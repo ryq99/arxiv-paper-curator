@@ -41,7 +41,7 @@ ARXIV_PAPERS_CHUNKS_MAPPING = {
                 "method": {
                     "name": "hnsw",  # Hierarchical Navigable Small World
                     "space_type": "cosinesimil",  # Cosine similarity
-                    "engine": "nmslib",
+                    "engine": "faiss",
                     "parameters": {
                         "ef_construction": 512,  # Higher value = better recall, slower indexing
                         "m": 16,  # Number of bi-directional links
